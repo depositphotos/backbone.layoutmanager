@@ -19,13 +19,12 @@
     "node": ">=0.8"
   },
   "dependencies": {
-    "backbone": "1.2.3",
-    "underscore.deferred": "^0.4.0",
-    "cheerio": "^0.19.0",
+    "cheerio": "^0.22.0",
     "underscore": "^1.8.3",
-    "lodash": "^3.9.3"
+    "underscore.deferred": "^0.4.0"
   },
   "peerDependencies": {
+    "backbone": "*",
     "jquery": "*"
   },
   "devDependencies": {
@@ -41,22 +40,12 @@
     "grunt-jscs": "^1.8.0",
     "grunt-nodequnit": "^0.2.0",
     "grunt-qunit-istanbul": "^0.4.7",
+    "lodash": "^3.9.3",
     "jquery": "^2.1.4",
     "qunitjs": "^1.18.0",
     "requirejs": "^2.1.18"
   },
   "scripts": {
     "test": "grunt"
-  },
-  "jam": {
-    "dependencies": {
-      "underscore": ">=1.5",
-      "backbone": "~1.2",
-      "jquery": ">=1.6"
-    },
-    "include": [
-      "backbone.layoutmanager.js"
-    ],
-    "main": "backbone.layoutmanager.js"
   }
 }
