@@ -55,7 +55,7 @@
     "lodash": "^3.9.3",
     "qunitjs": "^1.18.0",
     "requirejs": "^2.1.18",
-    "webpack": "^4.39.3",
+    "webpack": "^4.16.4",
     "webpack-cli": "^3.3.7"
   },
   "scripts": {

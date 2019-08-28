@@ -6,15 +6,15 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'blm.js',
-        // library: 'backboneLayoutManager',
-        // libraryTarget: 'commonjs',
+        // library: 'backbone.layoutmanager',
+        libraryTarget: 'commonjs',
         // umdNamedDefine: true,
     },
-    // externals: {
-        // backbone: 'backbone',
-        // jquery: 'jquery',
-        // underscore: 'underscore',
-    // },
+    externals: {
+        backbone: 'backbone',
+        jquery: 'jquery',
+        underscore: 'underscore',
+    },
     module: {
         rules: [
             {
