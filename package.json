@@ -1,6 +1,6 @@
 {
   "author": "Artem Kuzmenko (@witem), Tim Branyen (@tbranyen)",
-  "name": "backbone-layout-manager",
+  "name": "backbone-lm",
   "description": "A layout and template manager for Backbone.js applications.",
   "version": "2.0.0-beta.0",
   "homepage": "http://github.com/witem/backbone.layoutmanager/",
