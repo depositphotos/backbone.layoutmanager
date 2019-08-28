@@ -4,6 +4,7 @@
  * backbone.layoutmanager.js may be freely distributed under the MIT license.
  */
 
+
 module.exports = (Backbone, _) => {
     const { $ } = Backbone;
 
@@ -566,7 +567,7 @@ module.exports = (Backbone, _) => {
                 // Start the render.
                 // Register this request & cancel any that conflict.
                 // root._registerWithRAF(actuallyRender, def); // TODO need change for front
-                root._registerWithRAF(actuallyRender, { resolve, reject });
+                root._registerWithRAF(actuallyRender);
             });
 
             // Mark this render as in progress. This will prevent
@@ -601,7 +602,7 @@ module.exports = (Backbone, _) => {
             const rentManager = manager.parent && manager.parent.__manager__;
 
             // Allow RAF processing to be shut off using `useRAF`:false.
-            if (this.useRAF === false) {
+            if (this.useRAF || !this.useRAF) { // TODO need restore requestAnimationFrame
                 if (manager.queue) {
                     manager.queue.push(callback);
                 } else {
@@ -616,7 +617,7 @@ module.exports = (Backbone, _) => {
             manager.deferreds.push(deferred);
 
             // Schedule resolving all deferreds that are waiting.
-            deferred.done(() => {
+            deferred.then(() => {
                 // Resolve all deferreds that were cancelled previously, if any.
                 // This allows the user to bind callbacks to any render callback,
                 // even if it was cancelled above.
@@ -952,11 +953,6 @@ module.exports = (Backbone, _) => {
         // repeat requests. Leave on for better performance.
         useRAF: true,
 
-        // Can be used to supply a different deferred implementation.
-        deferred() {
-            return $.Deferred();
-        },
-
         // Fetch is passed a path and is expected to return template contents as a
         // function or string.
         fetchTemplate(path) {
@@ -1041,11 +1037,6 @@ module.exports = (Backbone, _) => {
         // Very similar to HTML except this one will appendChild by default.
         insert($root, $el) {
             $root.append($el);
-        },
-
-        // Return a deferred for when all promises resolve/reject.
-        when(promises) {
-            return $.when.apply(null, promises);
         },
 
         // A method to determine if a View contains another.
