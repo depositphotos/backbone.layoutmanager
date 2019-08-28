@@ -1,0 +1,71 @@
+---
+extends: "airbnb-base"
+env:
+    node: true
+    mocha: true
+    browser: true
+    es6: true
+
+globals:
+    module: true
+    describe: true
+    it: true
+    expect: true
+    before: true
+    constants: true
+    sinon: true
+    chai: true
+    ROOT_PATH: true
+
+rules:
+    indent:
+        - "error"
+        - 4
+        -
+            SwitchCase: 1
+    no-unused-vars:
+        - 2
+        -
+            vars: 'local'
+            args: 'none'
+    func-names: 'off'
+    import/no-dynamic-require: 'off'
+    max-len:
+        - 'error'
+        - 125
+        - 2
+        -
+            ignoreUrls: true
+            ignoreComments: false
+            ignoreRegExpLiterals: true
+            ignoreStrings: true
+            ignoreTemplateLiterals: true
+    no-param-reassign:
+        - 'off'
+    prefer-destructuring:
+        - 'error'
+        -
+            object: true
+            array: false
+    no-bitwise:
+        - 'off'
+    no-underscore-dangle:
+        - 'off'
+    no-plusplus:
+        - 'off'
+    no-empty:
+        - 2
+        -
+            allowEmptyCatch: true
+    comma-dangle:
+        - 'error'
+        -
+            arrays: 'always-multiline'
+            objects: 'always-multiline'
+            imports: 'always-multiline'
+            exports: 'always-multiline'
+            functions: 'never'
+    no-await-in-loop:
+        - 'off'
+    class-methods-use-this:
+        - 'off'

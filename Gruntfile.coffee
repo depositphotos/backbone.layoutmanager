@@ -3,9 +3,6 @@ module.exports = ->
 
   @registerTask "default", [
     "clean"
-    "jscs"
-    "jshint"
-    "browserify"
     "qunit"
     "nodequnit"
   ]
