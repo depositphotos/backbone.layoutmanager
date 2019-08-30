@@ -3,7 +3,14 @@
  * Copyright 2016, Tim Branyen (@tbranyen)
  * backbone.layoutmanager.js may be freely distributed under the MIT license.
  */
-
+class Deferred {
+    constructor() {
+        this.promise = new Promise((resolve, reject) => {
+            this.reject = reject;
+            this.resolve = resolve;
+        });
+    }
+}
 
 module.exports = (Backbone, _) => {
     const { $ } = Backbone;
@@ -437,138 +444,137 @@ module.exports = (Backbone, _) => {
             const manager = root.__manager__;
             const { parent } = manager;
             const rentManager = parent && parent.__manager__;
-            const def = new Promise((resolve, reject) => {
-                // Triggered once the render has succeeded.
-                function finalize() {
-                    // Insert all subViews into the parent at once.
-                    _.each(root.views, (views, selector) => {
-                        // Fragments aren't used on arrays of subviews.
-                        if (_.isArray(views)) {
-                            root.htmlBatch(root, views, selector);
-                        }
-                    });
+            const def = new Deferred();
 
-                    // If there is a parent and we weren't attached to it via the previous
-                    // method (single view), attach.
-                    if (parent && !manager.insertedViaFragment) {
-                        if (!root.contains(parent.el, root.el)) {
-                            // Apply the partial using parent's html() method.
-                            parent.partial(parent.$el, root.$el, rentManager, manager);
-                        }
+            // Triggered once the render has succeeded.
+            function finalize() {
+                // Insert all subViews into the parent at once.
+                _.each(root.views, (views, selector) => {
+                    // Fragments aren't used on arrays of subviews.
+                    if (_.isArray(views)) {
+                        root.htmlBatch(root, views, selector);
+                    }
+                });
+
+                // If there is a parent and we weren't attached to it via the previous
+                // method (single view), attach.
+                if (parent && !manager.insertedViaFragment) {
+                    if (!root.contains(parent.el, root.el)) {
+                        // Apply the partial using parent's html() method.
+                        parent.partial(parent.$el, root.$el, rentManager, manager);
+                    }
+                }
+
+                // Ensure events are always correctly bound after rendering.
+                root.delegateEvents();
+
+                // Set this View as successfully rendered.
+                root.hasRendered = true;
+                manager.renderInProgress = false;
+
+                // Clear triggeredByRAF flag.
+                delete manager.triggeredByRAF;
+
+                // Only process the queue if it exists.
+                if (manager.queue && manager.queue.length) {
+                    // Ensure that the next render is only called after all other
+                    // `done` handlers have completed.  This will prevent `render`
+                    // callbacks from firing out of order.
+                    (manager.queue.shift())();
+                } else {
+                    // Once the queue is depleted, remove it, the render process has
+                    // completed.
+                    delete manager.queue;
+                }
+
+                // Reusable function for triggering the afterRender callback and event.
+                function completeRender() {
+                    const { console } = globalContext;
+                    const { afterRender } = root;
+
+                    if (afterRender) {
+                        afterRender.call(root, root);
                     }
 
-                    // Ensure events are always correctly bound after rendering.
-                    root.delegateEvents();
+                    // Always emit an afterRender event.
+                    root.trigger('afterRender', root);
 
-                    // Set this View as successfully rendered.
-                    root.hasRendered = true;
-                    manager.renderInProgress = false;
+                    // If there are multiple top level elements and `el: false` is used,
+                    // display a warning message and a stack trace.
+                    if (manager.noel && root.$el.length > 1) {
+                        // Do not display a warning while testing or if warning suppression
+                        // is enabled.
+                        if (_.isFunction(console.warn) && !root.suppressWarnings) {
+                            console.warn('`el: false` with multiple top level elements is '
+                  + 'not supported.');
 
-                    // Clear triggeredByRAF flag.
-                    delete manager.triggeredByRAF;
-
-                    // Only process the queue if it exists.
-                    if (manager.queue && manager.queue.length) {
-                        // Ensure that the next render is only called after all other
-                        // `done` handlers have completed.  This will prevent `render`
-                        // callbacks from firing out of order.
-                        (manager.queue.shift())();
-                    } else {
-                        // Once the queue is depleted, remove it, the render process has
-                        // completed.
-                        delete manager.queue;
-                    }
-
-                    // Reusable function for triggering the afterRender callback and event.
-                    function completeRender() {
-                        const { console } = globalContext;
-                        const { afterRender } = root;
-
-                        if (afterRender) {
-                            afterRender.call(root, root);
-                        }
-
-                        // Always emit an afterRender event.
-                        root.trigger('afterRender', root);
-
-                        // If there are multiple top level elements and `el: false` is used,
-                        // display a warning message and a stack trace.
-                        if (manager.noel && root.$el.length > 1) {
-                            // Do not display a warning while testing or if warning suppression
-                            // is enabled.
-                            if (_.isFunction(console.warn) && !root.suppressWarnings) {
-                                console.warn('`el: false` with multiple top level elements is '
-                      + 'not supported.');
-
-                                // Provide a stack trace if available to aid with debugging.
-                                if (_.isFunction(console.trace)) {
-                                    console.trace();
-                                }
+                            // Provide a stack trace if available to aid with debugging.
+                            if (_.isFunction(console.trace)) {
+                                console.trace();
                             }
                         }
                     }
+                }
 
-                    // If the parent is currently rendering, wait until it has completed
-                    // until calling the nested View's `afterRender`.
-                    if (rentManager && (rentManager.renderInProgress || rentManager.queue)) {
-                        // Wait until the parent View has finished rendering, which could be
-                        // asynchronous, and trigger afterRender on this View once it has
-                        // completed.
-                        parent.once('afterRender', completeRender);
-                    } else {
-                        // This View and its parent have both rendered.
-                        completeRender();
+                // If the parent is currently rendering, wait until it has completed
+                // until calling the nested View's `afterRender`.
+                if (rentManager && (rentManager.renderInProgress || rentManager.queue)) {
+                    // Wait until the parent View has finished rendering, which could be
+                    // asynchronous, and trigger afterRender on this View once it has
+                    // completed.
+                    parent.once('afterRender', completeRender);
+                } else {
+                    // This View and its parent have both rendered.
+                    completeRender();
+                }
+
+                return def.resolve(root);
+            }
+
+            // Actually facilitate a render.
+            function actuallyRender() {
+                // The `_viewRender` method is broken out to abstract away from having
+                // too much code in `actuallyRender`.
+                root._render().then(() => {
+                    // If there are no children to worry about, complete the render
+                    // instantly.
+                    if (!_.keys(root.views).length) {
+                        return finalize();
                     }
 
-                    return resolve(root);
-                }
+                    // Create a list of promises to wait on until rendering is done.
+                    // Since this method will run on all children as well, its sufficient
+                    // for a full hierarchical.
+                    const promises = _.map(root.views, (view) => {
+                        const insert = _.isArray(view);
 
-                // Actually facilitate a render.
-                function actuallyRender() {
-                    // The `_viewRender` method is broken out to abstract away from having
-                    // too much code in `actuallyRender`.
-                    root._render().then(() => {
-                        // If there are no children to worry about, complete the render
-                        // instantly.
-                        if (!_.keys(root.views).length) {
-                            return finalize();
+                        // If items are being inserted, they will be in a non-zero length
+                        // Array.
+                        if (insert && view.length) {
+                            // Mark each subview's manager so they don't attempt to attach by
+                            // themselves.  Return a single promise representing the entire
+                            // render.
+                            return _.map(view, (subView) => {
+                                subView.__manager__.insertedViaFragment = true;
+                                return subView.render().promise();
+                            });
                         }
 
-                        // Create a list of promises to wait on until rendering is done.
-                        // Since this method will run on all children as well, its sufficient
-                        // for a full hierarchical.
-                        const promises = _.map(root.views, (view) => {
-                            const insert = _.isArray(view);
-
-                            // If items are being inserted, they will be in a non-zero length
-                            // Array.
-                            if (insert && view.length) {
-                                // Mark each subview's manager so they don't attempt to attach by
-                                // themselves.  Return a single promise representing the entire
-                                // render.
-                                return _.map(view, (subView) => {
-                                    subView.__manager__.insertedViaFragment = true;
-                                    return subView.render().promise();
-                                });
-                            }
-
-                            // Only return the fetch deferred, resolve the main deferred after
-                            // the element has been attached to it's parent.
-                            return !insert ? view.render().promise() : Promise.resolve(view);
-                        });
-
-                        // Once all nested Views have been rendered, resolve this View's
-                        // deferred.
-                        Promise.all(_.flatten(promises)).then(finalize);
-                        return null;
+                        // Only return the fetch deferred, resolve the main deferred after
+                        // the element has been attached to it's parent.
+                        return !insert ? view.render().promise() : Promise.resolve(view);
                     });
-                }
 
-                // Start the render.
-                // Register this request & cancel any that conflict.
-                // root._registerWithRAF(actuallyRender, def); // TODO need change for front
-                root._registerWithRAF(actuallyRender);
-            });
+                    // Once all nested Views have been rendered, resolve this View's
+                    // deferred.
+                    Promise.all(_.flatten(promises)).then(finalize);
+                    return null;
+                });
+            }
+
+            // Start the render.
+            // Register this request & cancel any that conflict.
+            root._registerWithRAF(actuallyRender, def);
 
             // Mark this render as in progress. This will prevent
             // afterRender from being fired until the entire chain has rendered.
@@ -580,7 +586,7 @@ module.exports = (Backbone, _) => {
             // `render().once("afterRender", ...`.
             // FIXME: I think we need to move back to promises so that we don't
             // miss events, regardless of sync/async (useRAF setting)
-            manager.renderDeferred = def;
+            manager.renderDeferred = def.promise;
 
             // Return the actual View for chainability purposes.
             return root;
@@ -596,13 +602,13 @@ module.exports = (Backbone, _) => {
         },
 
         // Register a view render with RAF.
-        _registerWithRAF(callback, deferred) {
+        _registerWithRAF(callback, { promise, resolve }) {
             const root = this;
             const manager = root.__manager__;
             const rentManager = manager.parent && manager.parent.__manager__;
 
             // Allow RAF processing to be shut off using `useRAF`:false.
-            if (this.useRAF || !this.useRAF) { // TODO need restore requestAnimationFrame
+            if (!this.useRAF) {
                 if (manager.queue) {
                     manager.queue.push(callback);
                 } else {
@@ -613,18 +619,18 @@ module.exports = (Backbone, _) => {
             }
 
             // Keep track of all deferreds so we can resolve them.
-            manager.deferreds = manager.deferreds || [];
-            manager.deferreds.push(deferred);
+            if (!manager.deferreds) manager.deferreds = [];
+            manager.deferreds.push(resolve);
 
             // Schedule resolving all deferreds that are waiting.
-            deferred.then(() => {
+            promise.then(() => {
                 // Resolve all deferreds that were cancelled previously, if any.
                 // This allows the user to bind callbacks to any render callback,
                 // even if it was cancelled above.
                 for (let i = 0; i < manager.deferreds.length; i++) {
-                    manager.deferreds[i].resolveWith(root, [root]);
+                    manager.deferreds[i].call(root, root);
                 }
-                manager.deferreds = [];
+                manager.deferreds.length = 0;
             });
 
             // Cancel any other renders on this view that are queued to execute.
