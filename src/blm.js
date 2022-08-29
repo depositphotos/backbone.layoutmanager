@@ -505,7 +505,7 @@ module.exports = (Backbone, _) => {
                         // Do not display a warning while testing or if warning suppression
                         // is enabled.
                         if (_.isFunction(console.error)) {
-                            console.error(`{ el: false } with multiple top level elements is not supported in view: ${root?.name}`);
+                            console.error(`{ el: false } with multiple top level elements is not supported in view: ${root.name}`);
 
                             // Provide a stack trace if available to aid with debugging.
                             if (_.isFunction(console.trace)) {

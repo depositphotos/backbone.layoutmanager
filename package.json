@@ -3,10 +3,10 @@
   "name": "backbone-lm",
   "description": "A layout and template manager for Backbone.js applications.",
   "version": "2.0.0-beta.1",
-  "homepage": "http://github.com/witem/backbone.layoutmanager/",
+  "homepage": "https://github.com/depositphotos/backbone.layoutmanager",
   "repository": {
     "type": "git",
-    "url": "git://github.com/witem/backbone.layoutmanager.git"
+    "url": "git://github.com/depositphotos/backbone.layoutmanager.git"
   },
   "main": "./src/blm-node.js",
   "browser": "./dist/blm.js",
