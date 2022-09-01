@@ -3,6 +3,5 @@ module.exports = ->
 
   @registerTask "default", [
     "clean"
-    "qunit"
     "nodequnit"
   ]
