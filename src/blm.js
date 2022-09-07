@@ -14,10 +14,10 @@ class Deferred {
 
 function getViewStackTrace(view) {
     const trace = [];
-    let parent = view.__manager__?.parent;
+    let parent = view.__manager__ && view.__manager__.parent;
     while (parent) {
-        trace.push(parent?.name);
-        parent = parent.__manager__?.parent;
+        trace.push(parent.name);
+        parent = parent.__manager__ && parent.__manager__.parent;
     }
     return trace.filter(Boolean).reverse();
 }
