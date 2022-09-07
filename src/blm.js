@@ -12,6 +12,16 @@ class Deferred {
     }
 }
 
+function getViewStackTrace(view) {
+    const trace = [];
+    let parent = view.__manager__?.parent;
+    while (parent) {
+        trace.push(parent?.name);
+        parent = parent.__manager__?.parent;
+    }
+    return trace.filter(Boolean).reverse();
+}
+
 module.exports = (Backbone, _) => {
     const { $ } = Backbone;
 
@@ -505,7 +515,7 @@ module.exports = (Backbone, _) => {
                         // Do not display a warning while testing or if warning suppression
                         // is enabled.
                         if (_.isFunction(console.error)) {
-                            console.error(`{ el: false } with multiple top level elements is not supported in view: ${root.name}`);
+                            console.error(`{ el: false } with multiple top level elements is not supported in view: ${getViewStackTrace(root).join(' > ')}`);
 
                             // Provide a stack trace if available to aid with debugging.
                             if (_.isFunction(console.trace)) {
